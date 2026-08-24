@@ -1,0 +1,7 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "deploy": {
+    "startCommand": "python Webchat_Server.py",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
