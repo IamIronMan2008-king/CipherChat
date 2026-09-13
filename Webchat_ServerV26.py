@@ -336,6 +336,19 @@ def handle_client(client, addr):
             data = data.decode('utf-8')
             print(data)
 
+            # An authenticated connection can also ask whether some OTHER
+            # id is registered - used by the client to confirm a contact's
+            # user id actually exists before saving it. This is answered
+            # immediately, the same way it is pre-login, instead of being
+            # queued as a chat message.
+            if data.startswith(CHECKID_PREFIX):
+                candidate_id = data[len(CHECKID_PREFIX):]
+                if id_is_taken(candidate_id):
+                    _send_raw(client, ID_TAKEN_PREFIX + candidate_id)
+                else:
+                    _send_raw(client, ID_AVAILABLE_PREFIX + candidate_id)
+                continue
+
             # After login, the client is trusted to BE my_id, so it only
             # needs to send: message + SEPARATOR + recipient_id. The
             # sender is always my_id - never taken from the client - so
