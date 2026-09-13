@@ -191,7 +191,7 @@ def _try_send_pending_message(pending_message):
     # afterward, as requested, so the list contains only undelivered messages.
     pending_message[0] = True
     _remove_pending_message(pending_message)
-    print('msg sent to', send_id)
+    print(f"{message_details['sender_id']} -> {send_id}: delivered")
     return True
 
 
@@ -208,7 +208,9 @@ def retry_unsent_messages():
 
 
 def sevto_msg(sender_id, msg, send_id):
-    """Queue an outbound message and attempt immediate delivery."""
+    """Queue an outbound message and attempt immediate delivery. Returns
+    True if it was delivered right away, False if it's now queued for the
+    retry worker to keep attempting (e.g. recipient currently offline)."""
     pending_message = [
         False,
         {
@@ -223,7 +225,10 @@ def sevto_msg(sender_id, msg, send_id):
 
     # Try immediately when possible. If the recipient is offline or the send
     # fails, the background worker will keep retrying this same list item.
-    _try_send_pending_message(pending_message)
+    delivered = _try_send_pending_message(pending_message)
+    if not delivered:
+        print(f'{sender_id} -> {send_id}: not delivered (recipient offline), queued for retry')
+    return delivered
 
 
 def _send_raw(client, text):
@@ -334,7 +339,6 @@ def handle_client(client, addr):
                 break  # client closed the connection
 
             data = data.decode('utf-8')
-            print(data)
 
             # An authenticated connection can also ask whether some OTHER
             # id is registered - used by the client to confirm a contact's
@@ -355,7 +359,7 @@ def handle_client(client, addr):
             # one authenticated connection can't spoof another user's id.
             data_list = data.split(MESSAGE_SEPARATOR)
             if len(data_list) < 2:
-                print('malformed message, ignoring:', data_list)
+                print('malformed message, ignoring (missing recipient id)')
                 continue
 
             message, recipient_id = data_list[0], data_list[1]
