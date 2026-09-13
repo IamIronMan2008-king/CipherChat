@@ -1,1 +1,1 @@
-worker: python Webchat_ServerV25.py
+worker: python Webchat_ServerV26.py
